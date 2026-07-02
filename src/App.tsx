@@ -13,6 +13,19 @@ interface HistoryLog {
   isCorrect: boolean;
 }
 
+// Ordem padrão da matriz 13x13 de mãos do Poker (169 mãos no total)
+// Diagonal principal: Pares (AA, KK, ..., 22)
+// Triângulo superior direito: Suited (AKs, AQs, ..., 32s)
+// Triângulo inferior esquerdo: Offsuit (AKo, AQo, ..., 32o)
+const GRID_RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
+const STANDARD_GRID_ORDER = GRID_RANKS.flatMap((r1, i) =>
+  GRID_RANKS.map((r2, j) => {
+    if (i === j) return `${r1}${r2}`;
+    if (i < j) return `${r1}${r2}s`;
+    return `${r2}${r1}o`;
+  })
+);
+
 export default function App() {
   // Estados de Fluxo e Menu
   const [view, setView] = useState<'SETUP' | 'GAMEPLAY' | 'LEAK_FINDER'>('SETUP');
@@ -159,6 +172,8 @@ export default function App() {
   const accuracyPct = sessionHistory.length > 0 
     ? Math.round((sessionHistory.filter(h => h.isCorrect).length / sessionHistory.length) * 100) 
     : 0;
+
+  const currentMatrixData = currentScenario ? getFullGridMatrixForScenario(currentScenario) : {};
 
   return (
     <div className="max-w-6xl mx-auto p-4 min-h-screen flex flex-col justify-between">
@@ -412,7 +427,6 @@ export default function App() {
               </button>
             </div>
           ) : (
-            
             /* ----------------- CONGELAMENTO DE TELA THRESHOLD UX + MATRIZ GTO ----------------- */
             <div className="w-full max-w-4xl bg-slate-900 border-2 rounded-2xl p-6 flex flex-col items-center gap-6 shadow-2xl animate-scaleUp border-slate-800">
               
@@ -434,23 +448,29 @@ export default function App() {
               </div>
 
               {/* Matriz Dinâmica Exposta */}
-              <div className="w-full max-w-md">
-                <span className="block text-[10px] text-center text-slate-400 font-bold uppercase tracking-widest mb-2">Fronteiras Estratégicas do Cenário Atual</span>
-                <div className="grid grid-cols-13 gap-0.5 p-1 bg-slate-950 rounded-xl border border-slate-800">
-                  {Object.entries(getFullGridMatrixForScenario(currentScenario)).map(([matrixHand, act]) => {
+              <div className="w-full max-w-[280px] mx-auto my-4">
+                <span className="block text-[9px] text-center text-slate-400 font-bold uppercase tracking-widest mb-1.5">
+                  Fronteiras Estratégicas do Cenário Atual
+                </span>
+                <div 
+                  className="grid gap-[1px] p-1 bg-slate-950 rounded-xl border border-slate-800 shadow-xl"
+                  style={{ gridTemplateColumns: 'repeat(13, minmax(0, 1fr))' }}
+                >
+                  {STANDARD_GRID_ORDER.map((matrixHand) => {
+                    const act = currentMatrixData[matrixHand] || 'FOLD';
                     const isUserHand = matrixHand === handText;
-                    let cellBg = 'bg-slate-900 text-slate-600';
+                    let cellBg = 'bg-slate-900 text-slate-600/70';
                     if (act === 'RAISE') cellBg = 'bg-amber-600 text-white font-bold';
                     if (act === 'CALL') cellBg = 'bg-emerald-600 text-white font-bold';
                     if (act === '3-BET') cellBg = 'bg-indigo-600 text-white font-bold';
-                    if (act === 'FOLD') cellBg = 'bg-slate-800/40 text-slate-500';
+                    if (act === 'FOLD') cellBg = 'bg-slate-800/30 text-slate-500';
 
                     return (
                       <div 
                         key={matrixHand} 
                         title={`${matrixHand}: ${act}`}
-                        className={`aspect-square flex items-center justify-center text-[8px] select-none rounded-[1px] transition-all ${cellBg} ${
-                          isUserHand ? 'ring-4 ring-white scale-110 z-10 animate-pulse border border-black' : ''
+                        className={`aspect-square flex items-center justify-center text-[6px] md:text-[7px] font-semibold select-none rounded-[1px] transition-all ${cellBg} ${
+                          isUserHand ? 'ring-2 ring-white scale-110 z-10 animate-pulse border border-black shadow-lg shadow-black' : ''
                         }`}
                       >
                         {matrixHand.slice(0, 2)}
@@ -458,7 +478,7 @@ export default function App() {
                     );
                   })}
                 </div>
-                
+              
                 {/* Legenda do Gráfico */}
                 <div className="flex justify-center gap-4 text-[10px] mt-3 font-semibold">
                   <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-600" /> Raise</div>
@@ -469,13 +489,15 @@ export default function App() {
               </div>
 
               {/* Botão de Avanço */}
-              <button
-                onClick={() => nextDrillHand(allowedScenarios, currentHandIdx + 1)}
-                className="w-full max-w-xs bg-slate-100 hover:bg-white text-slate-950 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1 shadow-lg transition-all"
-              >
-                AVANÇAR PARA A PRÓXIMA MÃO <ChevronRight className="w-4 h-4" />
-              </button>
-              <span className="text-[10px] text-slate-500 -mt-3">Dica: Ou pressione a barra de [Espaço]</span>
+              <div className="w-full flex flex-col items-center gap-2 mt-4">
+                <button
+                  onClick={() => nextDrillHand(allowedScenarios, currentHandIdx + 1)}
+                  className="w-full max-w-xs bg-slate-100 hover:bg-white text-slate-950 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-1 shadow-lg transition-all"
+                >
+                  AVANÇAR PARA A PRÓXIMA MÃO <ChevronRight className="w-4 h-4" />
+                </button>
+                <span className="text-[10px] text-slate-500">Dica: Ou pressione a barra de [Espaço]</span>
+              </div>
             </div>
           )}
         </main>
