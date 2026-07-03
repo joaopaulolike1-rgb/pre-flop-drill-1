@@ -162,3 +162,99 @@ export function getFullGridMatrixForScenario(scenario: Scenario): { [hand: strin
   }
   return matrix;
 }
+
+export function getCardsFromHandText(handText: string): { card1: Card; card2: Card } {
+  const r1 = handText[0];
+  const r2 = handText[1];
+  const type = handText.length === 3 ? handText[2] : 'p'; // s = suited, o = offsuit, p = pair
+
+  const suitsBase = [...SUITS];
+  let s1: string, s2: string;
+
+  if (type === 's') {
+    // Mesmos naipes
+    s1 = suitsBase[Math.floor(Math.random() * suitsBase.length)];
+    s2 = s1;
+  } else {
+    // Naipes diferentes (offsuit ou par)
+    const idx1 = Math.floor(Math.random() * suitsBase.length);
+    s1 = suitsBase.splice(idx1, 1)[0];
+    const idx2 = Math.floor(Math.random() * suitsBase.length);
+    s2 = suitsBase[idx2];
+  }
+
+  return {
+    card1: { rank: r1, suit: s1 as any },
+    card2: { rank: r2, suit: s2 as any }
+  };
+}
+
+// Algoritmo Especialista: Sorteia a mão baseado na dificuldade
+export function generateHandByDifficulty(
+  scenario: Scenario, 
+  difficulty: 'NORMAL' | 'EXPERT'
+): { card1: Card; card2: Card; handText: string } {
+  
+  if (difficulty === 'NORMAL') {
+    return generateRandomHand();
+  }
+
+  // LÓGICA EXPERT: Filtrar mãos nas fronteiras do range
+  const matrix = getFullGridMatrixForScenario(scenario);
+  const pool: string[] = [];
+  const ranksDesc = [...RANKS].reverse(); // De A para 2
+
+  // Função auxiliar: Mapeia corretamente as posições isolando Suited, Offsuit e Pares
+  const getCoords = (h: string) => {
+    const r1 = ranksDesc.indexOf(h[0]);
+    const r2 = ranksDesc.indexOf(h[1]);
+    const type = h.length === 3 ? h[2] : 'p';
+    
+    // Suited: Triângulo superior direito
+    if (type === 's') return { row: Math.min(r1, r2), col: Math.max(r1, r2), type: 's' };
+    // Offsuit: Triângulo inferior esquerdo
+    if (type === 'o') return { row: Math.max(r1, r2), col: Math.min(r1, r2), type: 'o' };
+    // Pares: Diagonal principal
+    return { row: r1, col: r2, type: 'p' };
+  };
+
+  // Pega todas as mãos que são CALL, RAISE ou 3-BET
+  const actionHands = Object.keys(matrix).filter(h => matrix[h] !== 'FOLD');
+  const actionCoords = actionHands.map(getCoords);
+
+  if (actionHands.length === 0) return generateRandomHand();
+
+  Object.keys(matrix).forEach(hand => {
+    if (matrix[hand] !== 'FOLD') {
+      pool.push(hand); 
+    } else {
+      const hCoords = getCoords(hand);
+      let minDistance = 99;
+      
+      for (let ac of actionCoords) {
+        let dist = Math.max(Math.abs(hCoords.row - ac.row), Math.abs(hCoords.col - ac.col));
+        
+        // CORREÇÃO DO BUG: Penalidade severa para distâncias que cruzam categorias diferentes
+        if (hCoords.type !== ac.type) {
+            if ((hCoords.type === 's' && ac.type === 'o') || (hCoords.type === 'o' && ac.type === 's')) {
+                dist += 4; // Impede que Suited se ancore em Offsuit
+            } else {
+                dist += 1; // Leve penalidade ao comparar com Pares, mantendo AKo/AKs testáveis contra QQ+
+            }
+        }
+
+        if (dist < minDistance) minDistance = dist;
+      }
+
+      // Se a distância for no máximo 2 combos lógicos da MESMA categoria, entra no sorteio
+      if (minDistance > 0 && minDistance <= 2) {
+        pool.push(hand);
+      }
+    }
+  });
+
+  const chosenHandText = pool[Math.floor(Math.random() * pool.length)];
+  const { card1, card2 } = getCardsFromHandText(chosenHandText);
+  
+  return { card1, card2, handText: chosenHandText };
+}

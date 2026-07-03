@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Play, RotateCcw, AlertTriangle, CheckCircle, ShieldAlert, Award, ChevronRight, Sliders, Layers } from 'lucide-react';
-import { SCENARIOS, generateRandomHand, getGTOActionForScenario, getFullGridMatrixForScenario, RANKS } from './pokerEngine';
+import { SCENARIOS, generateRandomHand, getGTOActionForScenario, getFullGridMatrixForScenario, RANKS, generateHandByDifficulty } from './pokerEngine';
 import type { Scenario, Card } from './pokerEngine';
 
 interface HistoryLog {
@@ -33,6 +33,7 @@ export default function App() {
   const [filterCategories, setFilterCategories] = useState<string[]>(['RFI', 'Defense_BB', 'Defense_BTN', 'Iso_Limp', 'Defense_SB', 'Blind_War']);
   const [stackSize, setStackSize] = useState<number>(100);
   const [sessionHandsCount, setSessionHandsCount] = useState<number>(20);
+  const [difficulty, setDifficulty] = useState<'NORMAL' | 'EXPERT'>('NORMAL');
 
   // Estados de Gameplay Ativos
   const [currentHandIdx, setCurrentHandIdx] = useState<number>(0);
@@ -85,7 +86,7 @@ export default function App() {
     }
 
     const randomScenario = scenariosPool[Math.floor(Math.random() * scenariosPool.length)];
-    const handSetup = generateRandomHand();
+    const handSetup = generateHandByDifficulty(randomScenario, difficulty);
     const gtoAnswer = getGTOActionForScenario(handSetup.handText, randomScenario);
 
     setCurrentScenario(randomScenario);
@@ -228,6 +229,39 @@ export default function App() {
                   })}
                 </div>
               </div>
+              
+              {/* Filtro de Dificuldade (Modo Normal vs Expert) */}
+<div className="mb-6 mt-4 pt-6 border-t border-slate-800/80">
+  <label className="block text-xs font-semibold text-slate-400 tracking-wider uppercase mb-3">Nível de Dificuldade do Motor GTO</label>
+  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+    <button
+      onClick={() => setDifficulty('NORMAL')}
+      className={`p-4 rounded-xl text-left border transition-all ${
+        difficulty === 'NORMAL' 
+          ? 'bg-blue-500/10 border-blue-500 shadow-lg shadow-blue-500/10' 
+          : 'bg-slate-900/50 border-slate-800 hover:bg-slate-800'
+      }`}
+    >
+      <div className={`font-black text-sm mb-1 ${difficulty === 'NORMAL' ? 'text-blue-400' : 'text-slate-300'}`}>NORMAL (Padrão)</div>
+      <p className="text-[10px] text-slate-500">Sorteio de cartas 100% aleatório. Simula o volume real de distribuição de cartas em uma mesa de poker física.</p>
+    </button>
+
+    <button
+      onClick={() => setDifficulty('EXPERT')}
+      className={`p-4 rounded-xl text-left border transition-all ${
+        difficulty === 'EXPERT' 
+          ? 'bg-amber-500/10 border-amber-500 shadow-lg shadow-amber-500/10' 
+          : 'bg-slate-900/50 border-slate-800 hover:bg-slate-800'
+      }`}
+    >
+      <div className={`font-black text-sm mb-1 flex items-center gap-2 ${difficulty === 'EXPERT' ? 'text-amber-400' : 'text-slate-300'}`}>
+        EXPERT (Foco em Limites)
+        {difficulty === 'EXPERT' && <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 text-[8px] uppercase tracking-widest rounded">Ativo</span>}
+      </div>
+      <p className="text-[10px] text-slate-500">Inteligência Artificial isola as mãos de fronteira. Força você a tomar decisões difíceis removendo os "Folds Óbvios".</p>
+    </button>
+  </div>
+</div>
 
               {/* Filtro de Categorias de Range */}
               <div className="mb-6">
