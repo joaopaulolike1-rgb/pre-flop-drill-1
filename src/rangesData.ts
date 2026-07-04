@@ -146,7 +146,7 @@ export const pokerRangesData = {
       "hero_pos": "BTN",
       "villain_pos": "MP",
       "action": "Call",
-      "hand_range": "99-22, AJs-A9s, KJs, QTs+, JTs+, T9s, 98s, 87s"
+      "hand_range": "99-22, AJs-A9s, KJs-KTs, QTs+, JTs+, T9s, 98s, 87s"
     },
     {
       "id": 16,
@@ -162,7 +162,7 @@ export const pokerRangesData = {
       "hero_pos": "BTN",
       "villain_pos": "CO",
       "action": "Call",
-      "hand_range": "88-22, ATs-A2s, KTs+, Q9s+, J9s+, T9s, 98s, 87s"
+      "hand_range": "88-22, ATs-A2s, KJs-K9s, Q9s+, J9s+, T9s, 98s, 87s"
     },
     {
       "id": 18,
