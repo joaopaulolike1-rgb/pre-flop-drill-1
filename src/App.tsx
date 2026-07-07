@@ -13,10 +13,6 @@ interface HistoryLog {
   isCorrect: boolean;
 }
 
-// Ordem padrão da matriz 13x13 de mãos do Poker (169 mãos no total)
-// Diagonal principal: Pares (AA, KK, ..., 22)
-// Triângulo superior direito: Suited (AKs, AQs, ..., 32s)
-// Triângulo inferior esquerdo: Offsuit (AKo, AQo, ..., 32o)
 const GRID_RANKS = ['A', 'K', 'Q', 'J', 'T', '9', '8', '7', '6', '5', '4', '3', '2'];
 const STANDARD_GRID_ORDER = GRID_RANKS.flatMap((r1, i) =>
   GRID_RANKS.map((r2, j) => {
@@ -42,7 +38,7 @@ export default function App() {
   const [card1, setCard1] = useState<Card | null>(null);
   const [card2, setCard2] = useState<Card | null>(null);
   const [handText, setHandText] = useState<string>('');
-  const [correctAction, setCorrectAction] = useState<'FOLD' | 'CALL' | 'RAISE' | '3-BET'>('FOLD');
+  const [correctAction, setCorrectAction] = useState<'FOLD' | 'CALL' | 'RAISE' | '3-BET' | 'ALL-IN'>('FOLD');
   
   // Gamificação e Feedbacks
   const [score, setScore] = useState<number>(0);
@@ -74,7 +70,6 @@ export default function App() {
     setUserSelectedAction(null);
     setShowThresholdUX(false);
     
-    // Disparar o primeiro Drill
     nextDrillHand(matches, 0);
     setView('GAMEPLAY');
   };
@@ -86,8 +81,8 @@ export default function App() {
     }
 
     const randomScenario = scenariosPool[Math.floor(Math.random() * scenariosPool.length)];
-    const handSetup = generateHandByDifficulty(randomScenario, difficulty);
-    const gtoAnswer = getGTOActionForScenario(handSetup.handText, randomScenario);
+    const handSetup = generateHandByDifficulty(randomScenario, difficulty, stackSize);
+    const gtoAnswer = getGTOActionForScenario(handSetup.handText, randomScenario, stackSize);
 
     setCurrentScenario(randomScenario);
     setCard1(handSetup.card1);
@@ -100,8 +95,8 @@ export default function App() {
   };
 
   // Processar Ação do Usuário
-  const handlePlayerAction = (action: 'FOLD' | 'CALL' | 'RAISE' | '3-BET') => {
-    if (showThresholdUX) return; // Tela congelada pelo Threshold UX
+  const handlePlayerAction = (action: 'FOLD' | 'CALL' | 'RAISE' | '3-BET' | 'ALL-IN') => {
+    if (showThresholdUX) return;
 
     setUserSelectedAction(action);
     const isCorrect = (action === correctAction);
@@ -118,7 +113,6 @@ export default function App() {
       setStreak(0);
     }
 
-    // Salva no log histórico do Detector de Erros (Leak Finder)
     if (currentScenario) {
       setSessionHistory(prev => [...prev, {
         handText,
@@ -131,11 +125,10 @@ export default function App() {
       }]);
     }
 
-    // Ativar Congelamento de Tela GTO (Sempre exibe se errou ou acertou para análise tática)
     setShowThresholdUX(true);
   };
 
-  // Atalhos Rápidos por Teclado (F, C, R, 3 ou Espaço)
+  // Atalhos Rápidos por Teclado (F, C, R, 3, A ou Espaço)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (view !== 'GAMEPLAY') return;
@@ -153,13 +146,13 @@ export default function App() {
       if (key === 'C') handlePlayerAction('CALL');
       if (key === 'R') handlePlayerAction('RAISE');
       if (key === '3') handlePlayerAction('3-BET');
+      if (key === 'A') handlePlayerAction('ALL-IN');
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [view, showThresholdUX, allowedScenarios, currentHandIdx]);
 
-  // Função Auxiliar de Cores para o Baralho de 4 Cores GipsyTeam
   const getSuitMeta = (suit: 's' | 'h' | 'd' | 'c') => {
     switch (suit) {
       case 's': return { label: '♠', color: 'bg-slate-900 border-slate-700 text-slate-100' };
@@ -169,12 +162,11 @@ export default function App() {
     }
   };
 
-  // Agrupadores de Estatísticas para o Leak Finder final
   const accuracyPct = sessionHistory.length > 0 
     ? Math.round((sessionHistory.filter(h => h.isCorrect).length / sessionHistory.length) * 100) 
     : 0;
 
-  const currentMatrixData = currentScenario ? getFullGridMatrixForScenario(currentScenario) : {};
+  const currentMatrixData = currentScenario ? getFullGridMatrixForScenario(currentScenario, stackSize) : {};
 
   return (
     <div className="max-w-6xl mx-auto p-4 min-h-screen flex flex-col justify-between">
@@ -230,38 +222,38 @@ export default function App() {
                 </div>
               </div>
               
-              {/* Filtro de Dificuldade (Modo Normal vs Expert) */}
-<div className="mb-6 mt-4 pt-6 border-t border-slate-800/80">
-  <label className="block text-xs font-semibold text-slate-400 tracking-wider uppercase mb-3">Nível de Dificuldade do Motor GTO</label>
-  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-    <button
-      onClick={() => setDifficulty('NORMAL')}
-      className={`p-4 rounded-xl text-left border transition-all ${
-        difficulty === 'NORMAL' 
-          ? 'bg-blue-500/10 border-blue-500 shadow-lg shadow-blue-500/10' 
-          : 'bg-slate-900/50 border-slate-800 hover:bg-slate-800'
-      }`}
-    >
-      <div className={`font-black text-sm mb-1 ${difficulty === 'NORMAL' ? 'text-blue-400' : 'text-slate-300'}`}>NORMAL (Padrão)</div>
-      <p className="text-[10px] text-slate-500">Sorteio de cartas 100% aleatório. Simula o volume real de distribuição de cartas em uma mesa de poker física.</p>
-    </button>
+              {/* Filtro de Dificuldade */}
+              <div className="mb-6 mt-4 pt-6 border-t border-slate-800/80">
+                <label className="block text-xs font-semibold text-slate-400 tracking-wider uppercase mb-3">Nível de Dificuldade do Motor GTO</label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <button
+                    onClick={() => setDifficulty('NORMAL')}
+                    className={`p-4 rounded-xl text-left border transition-all ${
+                      difficulty === 'NORMAL' 
+                        ? 'bg-blue-500/10 border-blue-500 shadow-lg shadow-blue-500/10' 
+                        : 'bg-slate-900/50 border-slate-800 hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className={`font-black text-sm mb-1 ${difficulty === 'NORMAL' ? 'text-blue-400' : 'text-slate-300'}`}>NORMAL (Padrão)</div>
+                    <p className="text-[10px] text-slate-500">Sorteio de cartas 100% aleatório. Simula o volume real de distribuição de cartas em uma mesa de poker física.</p>
+                  </button>
 
-    <button
-      onClick={() => setDifficulty('EXPERT')}
-      className={`p-4 rounded-xl text-left border transition-all ${
-        difficulty === 'EXPERT' 
-          ? 'bg-amber-500/10 border-amber-500 shadow-lg shadow-amber-500/10' 
-          : 'bg-slate-900/50 border-slate-800 hover:bg-slate-800'
-      }`}
-    >
-      <div className={`font-black text-sm mb-1 flex items-center gap-2 ${difficulty === 'EXPERT' ? 'text-amber-400' : 'text-slate-300'}`}>
-        EXPERT (Foco em Limites)
-        {difficulty === 'EXPERT' && <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 text-[8px] uppercase tracking-widest rounded">Ativo</span>}
-      </div>
-      <p className="text-[10px] text-slate-500">Inteligência Artificial isola as mãos de fronteira. Força você a tomar decisões difíceis removendo os "Folds Óbvios".</p>
-    </button>
-  </div>
-</div>
+                  <button
+                    onClick={() => setDifficulty('EXPERT')}
+                    className={`p-4 rounded-xl text-left border transition-all ${
+                      difficulty === 'EXPERT' 
+                        ? 'bg-amber-500/10 border-amber-500 shadow-lg shadow-amber-500/10' 
+                        : 'bg-slate-900/50 border-slate-800 hover:bg-slate-800'
+                    }`}
+                  >
+                    <div className={`font-black text-sm mb-1 flex items-center gap-2 ${difficulty === 'EXPERT' ? 'text-amber-400' : 'text-slate-300'}`}>
+                      EXPERT (Foco em Limites)
+                      {difficulty === 'EXPERT' && <span className="px-2 py-0.5 bg-amber-500/20 text-amber-500 text-[8px] uppercase tracking-widest rounded">Ativo</span>}
+                    </div>
+                    <p className="text-[10px] text-slate-500">Inteligência Artificial isola as mãos de fronteira. Força você a tomar decisões difíceis removendo os "Folds Óbvios".</p>
+                  </button>
+                </div>
+              </div>
 
               {/* Filtro de Categorias de Range */}
               <div className="mb-6">
@@ -292,7 +284,7 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Configurações Regulares */}
+              {/* Configurações Regulares (Seletor de Stacks Modificado) */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-400 tracking-wider uppercase mb-2">Profundidade do Stack (Estratégia)</label>
@@ -301,9 +293,9 @@ export default function App() {
                     onChange={(e) => setStackSize(Number(e.target.value))}
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 outline-none focus:border-emerald-500"
                   >
-                    <option value={100}>100 BB (Deep Stack Completo)</option>
-                    <option value={30}>30 BB (Estratégia Intermediate MMT)</option>
-                    <option value={15}>15 BB (Push / Fold Fases Finais)</option>
+                    <option value={100}>100 bbs Deep Stack</option>
+                    <option value={17}>17 bbs Short Stack MTT</option>
+                    <option value={14}>14 bbs Short Stack MTT</option>
                   </select>
                 </div>
                 <div>
@@ -342,17 +334,16 @@ export default function App() {
             </div>
             <div className="bg-slate-900/80 border border-slate-800/80 rounded-xl p-4 mt-4">
               <span className="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Dica de Produtividade</span>
-              <p className="text-xs text-slate-300 mt-1">Utilize os atalhos <strong className="text-emerald-400">F</strong> (Fold), <strong className="text-emerald-400">C</strong> (Call), <strong className="text-emerald-400">R</strong> (Raise) e <strong className="text-emerald-400">3</strong> (3-Bet) no seu teclado para treinar em velocidade máxima de Grind.</p>
+              <p className="text-xs text-slate-300 mt-1">Utilize os atalhos <strong className="text-emerald-400">F</strong> (Fold), <strong className="text-emerald-400">C</strong> (Call), <strong className="text-emerald-400">R</strong> (Raise), <strong className="text-emerald-400">3</strong> (3-Bet) e <strong className="text-emerald-400">A</strong> (All-In) no seu teclado para treinar em velocidade máxima de Grind.</p>
             </div>
           </div>
         </main>
       )}
 
-      {/* ----------------- TELA 2: MESA DE GAMEPLAY (DASHBOARD RAPIDO) ----------------- */}
+      {/* ----------------- TELA 2: MESA DE GAMEPLAY ----------------- */}
       {view === 'GAMEPLAY' && currentScenario && card1 && card2 && (
         <main className="my-auto flex flex-col gap-6 items-center animate-fadeIn">
           
-          {/* TIMELINE E CENÁRIO ATUAL */}
           <div className="w-full max-w-4xl bg-slate-900/60 border border-slate-800 p-4 rounded-2xl text-center shadow-inner">
             <span className="bg-slate-800 text-cyan-400 text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full border border-cyan-900/50">
               {currentScenario.category} ➔ {currentScenario.name}
@@ -362,7 +353,6 @@ export default function App() {
             </p>
           </div>
 
-          {/* SIMULAÇÃO MINI MESA 6-MAX (HUD PODS) */}
           <div className="w-full max-w-4xl bg-slate-950/80 border border-slate-900 rounded-3xl p-6 relative flex flex-col items-center">
             
             {/* Grid dos Assentos */}
@@ -384,7 +374,6 @@ export default function App() {
                   bgStyle = 'bg-red-950/20 text-red-400';
                   badge = currentScenario.category === 'Iso_Limp' ? 'LIMP' : 'RAISE';
                 } else {
-                  // Simula que os outros deram fold
                   bgStyle = 'bg-slate-900/10 text-slate-600 border-slate-900 opacity-40';
                   badge = "FOLD";
                 }
@@ -405,7 +394,7 @@ export default function App() {
               })}
             </div>
 
-            {/* AS DUAS CARTAS DISTRIBUÍDAS (ESTILO FLASHCARD GT) */}
+            {/* AS DUAS CARTAS DISTRIBUÍDAS */}
             <div className="flex gap-4 my-4">
               {[card1, card2].map((card, idx) => {
                 const meta = getSuitMeta(card.suit);
@@ -429,9 +418,9 @@ export default function App() {
             </div>
           </div>
 
-          {/* DOCK DE BOTÕES DE AÇÃO DO JOGADOR */}
+          {/* DOCK DE BOTÕES DE AÇÃO DO JOGADOR (Grid expandido para 5 botões com All-In) */}
           {!showThresholdUX ? (
-            <div className="w-full max-w-xl grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="w-full max-w-2xl grid grid-cols-2 sm:grid-cols-5 gap-3">
               <button 
                 onClick={() => handlePlayerAction('FOLD')}
                 className="bg-slate-800 hover:bg-slate-700 border border-slate-700 py-4 rounded-xl font-black text-sm tracking-widest text-slate-200 transition-all active:scale-95"
@@ -459,12 +448,18 @@ export default function App() {
               >
                 3-BET <span className="block text-[10px] text-indigo-200/60 font-normal mt-0.5">[3]</span>
               </button>
+
+              <button 
+                onClick={() => handlePlayerAction('ALL-IN')}
+                className="bg-rose-600 hover:bg-rose-500 py-4 rounded-xl font-black text-sm tracking-widest text-white transition-all active:scale-95 shadow-lg shadow-rose-600/10"
+              >
+                ALL-IN <span className="block text-[10px] text-rose-200/60 font-normal mt-0.5">[A]</span>
+              </button>
             </div>
           ) : (
             /* ----------------- CONGELAMENTO DE TELA THRESHOLD UX + MATRIZ GTO ----------------- */
             <div className="w-full max-w-4xl bg-slate-900 border-2 rounded-2xl p-6 flex flex-col items-center gap-6 shadow-2xl animate-scaleUp border-slate-800">
               
-              {/* Alerta de Acerto ou Erro */}
               <div className={`w-full p-4 rounded-xl flex items-center gap-3 border ${
                 isLastChoiceCorrect 
                   ? 'bg-emerald-500/10 border-emerald-500/50 text-emerald-400' 
@@ -497,6 +492,7 @@ export default function App() {
                     if (act === 'RAISE') cellBg = 'bg-amber-600 text-white font-bold';
                     if (act === 'CALL') cellBg = 'bg-emerald-600 text-white font-bold';
                     if (act === '3-BET') cellBg = 'bg-indigo-600 text-white font-bold';
+                    if (act === 'ALL-IN') cellBg = 'bg-rose-600 text-white font-bold';
                     if (act === 'FOLD') cellBg = 'bg-slate-800/30 text-slate-500';
 
                     return (
@@ -514,15 +510,15 @@ export default function App() {
                 </div>
               
                 {/* Legenda do Gráfico */}
-                <div className="flex justify-center gap-4 text-[10px] mt-3 font-semibold">
+                <div className="flex justify-center gap-2 flex-wrap text-[10px] mt-3 font-semibold">
                   <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-amber-600" /> Raise</div>
                   <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-emerald-600" /> Call</div>
                   <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-indigo-600" /> 3-Bet</div>
+                  <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-rose-600" /> All-In</div>
                   <div className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-slate-800" /> Fold</div>
                 </div>
               </div>
 
-              {/* Botão de Avanço */}
               <div className="w-full flex flex-col items-center gap-2 mt-4">
                 <button
                   onClick={() => nextDrillHand(allowedScenarios, currentHandIdx + 1)}
@@ -537,11 +533,10 @@ export default function App() {
         </main>
       )}
 
-      {/* ----------------- TELA 3: DETECTOR DE FALHAS (LEAK FINDER SUMMARY) ----------------- */}
+      {/* ----------------- TELA 3: DETECTOR DE FALHAS ----------------- */}
       {view === 'LEAK_FINDER' && (
         <main className="max-w-4xl mx-auto w-full my-auto animate-fadeIn">
           
-          {/* Card de Performance Geral */}
           <div className="bg-gradient-to-br from-slate-900 to-slate-950 border border-slate-800 p-8 rounded-3xl text-center shadow-2xl mb-6 relative overflow-hidden">
             <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-cyan-500 to-indigo-500" />
             
@@ -569,7 +564,6 @@ export default function App() {
             </div>
           </div>
 
-          {/* Lista detalhada do Detector de Erros (Leak Finder) */}
           <div className="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-6">
             <h3 className="font-bold text-slate-200 mb-4 flex items-center gap-2 text-sm uppercase tracking-wider">
               <AlertTriangle className="w-4 h-4 text-red-400" /> Diagnóstico de Erros (Leak Finder Logs)
@@ -602,7 +596,6 @@ export default function App() {
             )}
           </div>
 
-          {/* Botão de Retorno */}
           <button
             onClick={() => setView('SETUP')}
             className="w-full bg-slate-800 hover:bg-slate-700 text-slate-200 py-4 rounded-xl font-bold mt-6 text-sm transition-all flex items-center justify-center gap-2 border border-slate-700"

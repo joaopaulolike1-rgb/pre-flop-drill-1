@@ -2,13 +2,13 @@ import type { RangeRule } from './rangesData';
 import { pokerRangesData } from './rangesData';
 const PREFLOP_RANGES = pokerRangesData.preflop_ranges;
 
-
 export const RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A'];
 export const SUITS = ['s', 'h', 'd', 'c']; // s = spades(♠), h = hearts(♥), d = diamonds(♦), c = clubs(♣)
 
 export interface Card {
   suit: string;
-  value: string;
+  value: string; // Nota: Garanta que use 'rank' ou 'value' de forma consistente
+  rank?: string;  // Adicionado suporte para 'rank' conforme o restante do seu código
 }
 
 export interface Scenario {
@@ -54,7 +54,6 @@ export function expandRange(rangeStr: string): Set<string> {
   for (let token of tokens) {
     if (!token) continue;
     
-    // Intervalo de Faixas (-) ex: 77-22 ou ATs-A2s
     if (token.includes('-')) {
       const [highPart, lowPart] = token.split('-');
       if (highPart.length === 2 && highPart[0] === highPart[1]) {
@@ -73,7 +72,6 @@ export function expandRange(rangeStr: string): Set<string> {
         }
       }
     } 
-    // Notações com sinal de superior (+) ex: TT+ ou AQs+
     else if (token.endsWith('+')) {
       const base = token.slice(0, -1);
       if (base.length === 2 && base[0] === base[1]) {
@@ -91,7 +89,6 @@ export function expandRange(rangeStr: string): Set<string> {
         }
       }
     } 
-    // Combinações avulsas ex: KQs, AQo, 54s
     else {
       combos.add(token);
     }
@@ -100,26 +97,46 @@ export function expandRange(rangeStr: string): Set<string> {
 }
 
 export function getHandText(c1: Card, c2: Card): string {
-  const idx1 = getRankIdx(c1.rank);
-  const idx2 = getRankIdx(c2.rank);
-  if (idx1 === idx2) return c1.rank + c2.rank;
+  const r1 = c1.rank || c1.value;
+  const r2 = c2.rank || c2.value;
+  const idx1 = getRankIdx(r1);
+  const idx2 = getRankIdx(r2);
+  if (idx1 === idx2) return r1 + r2;
   if (idx1 > idx2) {
-    return c1.rank + c2.rank + (c1.suit === c2.suit ? 's' : 'o');
+    return r1 + r2 + (c1.suit === c2.suit ? 's' : 'o');
   } else {
-    return c2.rank + c1.rank + (c1.suit === c2.suit ? 's' : 'o');
+    return r2 + r1 + (c1.suit === c2.suit ? 's' : 'o');
   }
 }
 
-export function getGTOActionForScenario(handText: string, scenario: Scenario): 'FOLD' | 'CALL' | 'RAISE' | '3-BET' {
-  const rules = PREFLOP_RANGES.filter(r => scenario.associatedRuleIds.includes(r.id));
+// CORREÇÃO AQUI: Agora aceita stackSize e faz busca dinâmica baseada nos metadados do cenário
+export function getGTOActionForScenario(
+  handText: string, 
+  scenario: Scenario, 
+  stackSize: number = 100
+): 'FOLD' | 'CALL' | 'RAISE' | '3-BET' | 'ALL-IN' {
+  // Encontra a regra base (100bb) para herdar a categoria e posições mapeadas no cenário
+  const baseRules = PREFLOP_RANGES.filter(r => scenario.associatedRuleIds.includes(r.id));
+  if (baseRules.length === 0) return 'FOLD';
+
+  const { category, hero_pos, villain_pos } = baseRules[0];
+
+  // Filtra dinamicamente todas as regras do stack correto correspondentes a esse cenário
+  const rules = PREFLOP_RANGES.filter(r => 
+    r.stack_size === stackSize &&
+    r.category === category &&
+    r.hero_pos === hero_pos &&
+    r.villain_pos === villain_pos
+  );
   
-  // Varre as regras associadas para o cenário atual. Caso não esteja mapeada em nenhuma delas, será FOLD.
   for (let rule of rules) {
     const expanded = expandRange(rule.hand_range);
     if (expanded.has(handText)) {
-      if (rule.action === 'Raise') return 'RAISE';
-      if (rule.action === 'Call') return 'CALL';
-      if (rule.action === '3Bet') return '3-BET';
+      const actionLower = rule.action.toLowerCase();
+      if (actionLower === 'raise') return 'RAISE';
+      if (actionLower === 'call') return 'CALL';
+      if (actionLower === '3bet') return '3-BET';
+      if (actionLower === 'all-in') return 'ALL-IN'; // Mapeia a nova ação
     }
   }
   return 'FOLD';
@@ -129,7 +146,7 @@ export function generateRandomHand(): { card1: Card; card2: Card; handText: stri
   const fullDeck: Card[] = [];
   for (let r of RANKS) {
     for (let s of SUITS) {
-      fullDeck.push({ rank: r, suit: s as any });
+      fullDeck.push({ rank: r, value: r, suit: s as any });
     }
   }
   
@@ -141,9 +158,13 @@ export function generateRandomHand(): { card1: Card; card2: Card; handText: stri
   return { card1, card2, handText: getHandText(card1, card2) };
 }
 
-export function getFullGridMatrixForScenario(scenario: Scenario): { [hand: string]: 'FOLD' | 'CALL' | 'RAISE' | '3-BET' } {
-  const matrix: { [hand: string]: 'FOLD' | 'CALL' | 'RAISE' | '3-BET' } = {};
-  const matrixRanks = [...RANKS].reverse(); // De Ás para 2
+// CORREÇÃO AQUI: Repassa o stackSize para gerar a matriz correta
+export function getFullGridMatrixForScenario(
+  scenario: Scenario,
+  stackSize: number = 100
+): { [hand: string]: 'FOLD' | 'CALL' | 'RAISE' | '3-BET' | 'ALL-IN' } {
+  const matrix: { [hand: string]: 'FOLD' | 'CALL' | 'RAISE' | '3-BET' | 'ALL-IN' } = {};
+  const matrixRanks = [...RANKS].reverse(); 
   
   for (let r1 of matrixRanks) {
     for (let r2 of matrixRanks) {
@@ -157,7 +178,7 @@ export function getFullGridMatrixForScenario(scenario: Scenario): { [hand: strin
       } else {
         cellHand = r2 + r1 + 'o';
       }
-      matrix[cellHand] = getGTOActionForScenario(cellHand, scenario);
+      matrix[cellHand] = getGTOActionForScenario(cellHand, scenario, stackSize);
     }
   }
   return matrix;
@@ -166,17 +187,15 @@ export function getFullGridMatrixForScenario(scenario: Scenario): { [hand: strin
 export function getCardsFromHandText(handText: string): { card1: Card; card2: Card } {
   const r1 = handText[0];
   const r2 = handText[1];
-  const type = handText.length === 3 ? handText[2] : 'p'; // s = suited, o = offsuit, p = pair
+  const type = handText.length === 3 ? handText[2] : 'p'; 
 
   const suitsBase = [...SUITS];
   let s1: string, s2: string;
 
   if (type === 's') {
-    // Mesmos naipes
     s1 = suitsBase[Math.floor(Math.random() * suitsBase.length)];
     s2 = s1;
   } else {
-    // Naipes diferentes (offsuit ou par)
     const idx1 = Math.floor(Math.random() * suitsBase.length);
     s1 = suitsBase.splice(idx1, 1)[0];
     const idx2 = Math.floor(Math.random() * suitsBase.length);
@@ -184,41 +203,36 @@ export function getCardsFromHandText(handText: string): { card1: Card; card2: Ca
   }
 
   return {
-    card1: { rank: r1, suit: s1 as any },
-    card2: { rank: r2, suit: s2 as any }
+    card1: { rank: r1, value: r1, suit: s1 as any },
+    card2: { rank: r2, value: r2, suit: s2 as any }
   };
 }
 
-// Algoritmo Especialista: Sorteia a mão baseado na dificuldade
+// CORREÇÃO AQUI: Repassa o stackSize para a lógica expert funcionar com ranges curtos
 export function generateHandByDifficulty(
   scenario: Scenario, 
-  difficulty: 'NORMAL' | 'EXPERT'
+  difficulty: 'NORMAL' | 'EXPERT',
+  stackSize: number = 100
 ): { card1: Card; card2: Card; handText: string } {
   
   if (difficulty === 'NORMAL') {
     return generateRandomHand();
   }
 
-  // LÓGICA EXPERT: Filtrar mãos nas fronteiras do range
-  const matrix = getFullGridMatrixForScenario(scenario);
+  const matrix = getFullGridMatrixForScenario(scenario, stackSize);
   const pool: string[] = [];
-  const ranksDesc = [...RANKS].reverse(); // De A para 2
+  const ranksDesc = [...RANKS].reverse(); 
 
-  // Função auxiliar: Mapeia corretamente as posições isolando Suited, Offsuit e Pares
   const getCoords = (h: string) => {
     const r1 = ranksDesc.indexOf(h[0]);
     const r2 = ranksDesc.indexOf(h[1]);
     const type = h.length === 3 ? h[2] : 'p';
     
-    // Suited: Triângulo superior direito
     if (type === 's') return { row: Math.min(r1, r2), col: Math.max(r1, r2), type: 's' };
-    // Offsuit: Triângulo inferior esquerdo
     if (type === 'o') return { row: Math.max(r1, r2), col: Math.min(r1, r2), type: 'o' };
-    // Pares: Diagonal principal
     return { row: r1, col: r2, type: 'p' };
   };
 
-  // Pega todas as mãos que são CALL, RAISE ou 3-BET
   const actionHands = Object.keys(matrix).filter(h => matrix[h] !== 'FOLD');
   const actionCoords = actionHands.map(getCoords);
 
@@ -234,19 +248,17 @@ export function generateHandByDifficulty(
       for (let ac of actionCoords) {
         let dist = Math.max(Math.abs(hCoords.row - ac.row), Math.abs(hCoords.col - ac.col));
         
-        // CORREÇÃO DO BUG: Penalidade severa para distâncias que cruzam categorias diferentes
         if (hCoords.type !== ac.type) {
             if ((hCoords.type === 's' && ac.type === 'o') || (hCoords.type === 'o' && ac.type === 's')) {
-                dist += 4; // Impede que Suited se ancore em Offsuit
+                dist += 4; 
             } else {
-                dist += 1; // Leve penalidade ao comparar com Pares, mantendo AKo/AKs testáveis contra QQ+
+                dist += 1; 
             }
         }
 
         if (dist < minDistance) minDistance = dist;
       }
 
-      // Se a distância for no máximo 2 combos lógicos da MESMA categoria, entra no sorteio
       if (minDistance > 0 && minDistance <= 2) {
         pool.push(hand);
       }
