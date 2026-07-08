@@ -270,7 +270,7 @@ export const pokerRangesData = {
       "hero_pos": "UTG",
       "villain_pos": null,
       "action": "Raise",
-      "hand_range": "AA-TT, A5s+, KQs, QTs+, JTs, T9s, AKo, KJo+"
+      "hand_range": "99+,AJs+,A9s-A5s,KQs,KTs-K9s,Q9s+,JTs,AKo,AJo-ATo,KQo"
     },
     {
       "id": 28,
@@ -279,7 +279,7 @@ export const pokerRangesData = {
       "hero_pos": "UTG",
       "villain_pos": null,
       "action": "All-in",
-      "hand_range": "99-77, AQo-AJo, KJs-KTs"
+      "hand_range": "88-77,ATs,KJs,AQo"
     },
     {
       "id": 29,
@@ -288,7 +288,7 @@ export const pokerRangesData = {
       "hero_pos": "MP",
       "villain_pos": null,
       "action": "Raise",
-      "hand_range": "99+, ATs+, A8s-A5s, KQs, K9s, QTs-Q9s, J9s+, T9s, AKo, KJo, QJo"
+      "hand_range": "99+,ATs+,A8s-A5s,KQs,K9s,QTs-Q9s,JTs,T9s,AKo,ATo-A9o,KJo,QJo"
     },
     {
       "id": 30,
@@ -297,7 +297,7 @@ export const pokerRangesData = {
       "hero_pos": "MP",
       "villain_pos": null,
       "action": "all-in",
-      "hand_range": "88-55, A9s, KJs-KTs, QJs, AQo-ATo, KQo"
+      "hand_range": "88-55,A9s,KJs-KTs,QJs,AQo-AJo,KQo"
     },
     {
       "id": 31,
@@ -306,7 +306,7 @@ export const pokerRangesData = {
       "hero_pos": "CO",
       "villain_pos": null,
       "action": "Raise",
-      "hand_range": "88+, ATs+, A8s-A7s, KQs-KJs, K8s-K7s, Q8s, J8s, T8s, 98s, A6o-A4o, KTo-K9o, QTo+, JTo "
+      "hand_range": "88+,A7s+,KJs+,K8s-K7s,Q9s-Q8s,J9s-J8s,T9s,AKo,A7o-A4o,KTo,QTo+,JTo"
     },
     {
       "id": 32,
@@ -315,7 +315,7 @@ export const pokerRangesData = {
       "hero_pos": "CO",
       "villain_pos": null,
       "action": "all-in",
-      "hand_range": "77-22, A9s, A6s-A2s, KTs-K9s, Q9s+, J9s+, T9s, A7o+, KJo+"
+      "hand_range": "77-22,A9s,A6s-A2s,KTs-K9s,QTs+,JTs,AQo-A8o,KJo+"
     },
     {
       "id": 33,
@@ -324,7 +324,7 @@ export const pokerRangesData = {
       "hero_pos": "BTN",
       "villain_pos": null,
       "action": "Raise",
-      "hand_range": "88+, ATs+, A8s, KQs-KTs, K6s-K2s, QTs+, Q8s-Q5s, J8s-J7s, T8s-T7s,97s+, 87s, A6o, A4o-A2o, K9o-K8o, Q9o, J9o+, T9o"
+      "hand_range": "88+,ATs+,KTs+,K7s-K3s,QTs+,Q8s-Q5s,J8s-J7s,T7s+,98s,A7o-A2o,K9o-K8o,QTo-Q9o,JTo"
     },
     {
       "id": 34,
@@ -333,7 +333,7 @@ export const pokerRangesData = {
       "hero_pos": "BTN",
       "villain_pos": null,
       "action": "all-in",
-      "hand_range": "77-22, A9s, A7s-A2s, K9s-K7s, Q9s, J9s+, T9s+, A5o+, KTo+, QTo+"
+      "hand_range": "77-22,A9s-A2s,K9s-K8s,Q9s,J9s+,A8o+,KTo+,QJo"
     },
     {
       "id": 35,
@@ -342,7 +342,7 @@ export const pokerRangesData = {
       "hero_pos": "SB",
       "villain_pos": null,
       "action": "Raise",
-      "hand_range": "JJ+, AQs+,KTs+, QTs+"
+      "hand_range": "TT+,AQs+,K7s+,Q9s,T8s+,98s,K6o-K2o,QTo,Q8o-Q7o,JTo,J8o"
     },
     {
       "id": 36,
@@ -351,7 +351,7 @@ export const pokerRangesData = {
       "hero_pos": "SB",
       "villain_pos": null,
       "action": "Call",
-      "hand_range": "TT-88,AJs-ATs,K9s-K6s,K2s,Q9s-Q7s,J7s+,T7s+,97s+,86s+,75s+,65s,QTo-Q8o,J9o+,T9o"
+      "hand_range": "99-88,AJs-ATs,A5s-A4s,QTs+,Q8s-Q7s,J6s+,T6s+,96s+,86s+,75s+,65s,Q9o,J9o,T7o+"
     },
     {
       "id": 37,
@@ -360,7 +360,7 @@ export const pokerRangesData = {
       "hero_pos": "SB",
       "villain_pos": null,
       "action": "all-in",
-      "hand_range": "77-22,A9s-A2s,K5s-K3s,Q6s-Q5s,A2o+,K7o+,QJo"
+      "hand_range": "77-22,A9s-A6s,A3s-A2s,K6s-K3s,Q6s-Q5s,A2o+,K7o+,QJo"
     },
     {
       "id": 38,
@@ -442,6 +442,42 @@ export const pokerRangesData = {
       "villain_pos": null,
       "action": "all-in",
       "hand_range": "77-22, A5s-A2s, K9s-K8s, QTs-Q9s, J9s+, T9s, AJo-A2o, K8o+, QJo"
+    },
+    {
+      "id": 47,
+      "stack_size": 30,
+      "category": "RFI",
+      "hero_pos": "UTG",
+      "villain_pos": null,
+      "action": "Raise",
+      "hand_range": "55+,A2s+,K9s+,Q9s+,J9s+,T8s+,98s,ATo+,KJo+"
+    },
+    {
+      "id": 48,
+      "stack_size": 30,
+      "category": "RFI",
+      "hero_pos": "MP",
+      "villain_pos": null,
+      "action": "Raise",
+      "hand_range": "44+,A2s+,K7s+,Q8s+,J8s+,T8s+,98s,87s,A9o+,KTo+,QJo"
+    },
+    {
+      "id": 49,
+      "stack_size": 30,
+      "category": "RFI",
+      "hero_pos": "CO",
+      "villain_pos": null,
+      "action": "Raise",
+      "hand_range": "22+,A2s+,K2s+,Q5s+,J7s+,T7s+,97s+,86s+,76s,65s,A5o+,K9o+,Q9o+,JTo"
+    },
+    {
+      "id": 50,
+      "stack_size": 30,
+      "category": "RFI",
+      "hero_pos": "BTN",
+      "villain_pos": null,
+      "action": "Raise",
+      "hand_range": "22+,A2s+,K2s+,Q2s+,J4s+,T5s+,96s+,86s+,75s+,65s,54s,A2o+,K7o+,Q8o+,J8o+,T8o+"
     },
   ]
 }

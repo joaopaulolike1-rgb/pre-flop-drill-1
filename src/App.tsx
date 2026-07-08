@@ -294,6 +294,7 @@ export default function App() {
                     className="w-full bg-slate-800 border border-slate-700 rounded-xl p-3 text-sm text-slate-200 outline-none focus:border-emerald-500"
                   >
                     <option value={100}>100 bbs Deep Stack</option>
+                    <option value={30}>30 bbs GamePlay MTT</option>
                     <option value={17}>17 bbs Short Stack MTT</option>
                     <option value={14}>14 bbs Short Stack MTT</option>
                   </select>
