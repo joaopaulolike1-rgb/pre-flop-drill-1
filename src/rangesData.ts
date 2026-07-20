@@ -36,7 +36,7 @@ export const pokerRangesData = {
       "hero_pos": "UTG",
       "villain_pos": null,
       "action": "Raise",
-      "hand_range": "TT+, AQs+, AQo+, KQs"
+      "hand_range": "66+, A3s+, AJo+, KQo, K9s+, Q9s+, J9s+, T9s"
     },
     {
       "id": 2,
@@ -45,7 +45,7 @@ export const pokerRangesData = {
       "hero_pos": "MP",
       "villain_pos": null,
       "action": "Raise",
-      "hand_range": "66+, ATs+, KJs+, QJs, JTs, T9s, AJo+, KQo"
+      "hand_range": "55+, A2s+, K7s+, Q9s+, J9s+, T8s+, 98s, ATo+, KJo+"
     },
     {
       "id": 3,
@@ -54,7 +54,7 @@ export const pokerRangesData = {
       "hero_pos": "CO",
       "villain_pos": null,
       "action": "Raise",
-      "hand_range": "22+, A2s+, K7s+, Q8s+, J9s+, T8s+, 98s, 87s, ATo+, KTo+, QTo+, JTo+"
+      "hand_range": "44+, A2s+, K4s+, Q7s+, J8s+, T7s+, 97s+, 87s, A9o+, KTo+, QTo+, JTo"
     },
     {
       "id": 4,
@@ -63,7 +63,7 @@ export const pokerRangesData = {
       "hero_pos": "BTN",
       "villain_pos": null,
       "action": "Raise",
-      "hand_range": "22+, A2s+, A2o+, K2s+, K7o+, Q5s+, J7s+, T7s+, Q8o+, J9o+, T9o , 97s+, 86s+, 75s+, 65s, 54s"
+      "hand_range": "22+, A2s+, K2s+, Q3s+, J5s+, T6s+, 96s+, 86s+, 75s+, 65s, 54s, A4o+, K9o+, Q9o+, J9o+, T9o"
     },
     {
       "id": 5,
@@ -153,7 +153,7 @@ export const pokerRangesData = {
       "hero_pos": "BTN",
       "villain_pos": "UTG",
       "action": "3Bet",
-      "hand_range": "QQ+, AKs, AKo"
+      "hand_range": "QQ+, AKs, AQo+"
     },
     {
       "id": 15,
@@ -162,7 +162,7 @@ export const pokerRangesData = {
       "hero_pos": "BTN",
       "villain_pos": "MP",
       "action": "Call",
-      "hand_range": "99-22, AJs-A9s, KJs-KTs, QTs+, JTs+, T9s, 98s, 87s"
+      "hand_range": "99-22, AJs-ATs, KJs-KTs, QTs+, JTs+, T9s, 98s, 87s"
     },
     {
       "id": 16,
@@ -171,7 +171,7 @@ export const pokerRangesData = {
       "hero_pos": "BTN",
       "villain_pos": "MP",
       "action": "3Bet",
-      "hand_range": "TT+, AQs+, KQs, AQo+"
+      "hand_range": "TT+, AQs+, KQs, AJo+"
     },
     {
       "id": 17,
@@ -198,7 +198,7 @@ export const pokerRangesData = {
       "hero_pos": "IP",
       "villain_pos": "Limp",
       "action": "Raise",
-      "hand_range": "22+, A2s+, KTs+, QTs+, JTs, T9s, 98s, 87s, ATo+, KTo+, QTo+, JTo"
+      "hand_range": "22+, A2s+, KTs+, QTs+, JTs, T9s, 98s, ATo+, KTo+, QTo+"
     },
     {
       "id": 20,
